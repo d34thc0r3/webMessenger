@@ -2,46 +2,337 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>초간단 방번호 채팅</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>WebMessenger</title>
+
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #111111;
+        --muted: #666666;
+        --border: #d0d0d0;
+        --panel: #f6f6f6;
+        --btnbg: #ffffff;
+        --btnfg: #111111;
+        --accent: #2563eb;
+      }
+      body.dark {
+        --bg: #0b0f14;
+        --fg: #dbe7ff;
+        --muted: #7f8da3;
+        --border: #253246;
+        --panel: #0f1722;
+        --btnbg: #121b28;
+        --btnfg: #dbe7ff;
+        --accent: #60a5fa;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        background: var(--bg);
+        color: var(--fg);
+      }
+
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+
+      h2, h3 { margin: 0 0 12px 0; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+      .row > * { flex: 0 0 auto; }
+      .spacer { flex: 1 1 auto; }
+
+      input {
+        background: var(--btnbg);
+        color: var(--btnfg);
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        border-radius: 10px;
+        outline: none;
+      }
+
+      button {
+        background: var(--btnbg);
+        color: var(--btnfg);
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      button:hover { border-color: var(--accent); }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px;
+      }
+
+      #log {
+        width: 100%;
+        height: 360px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        background: transparent;
+        margin: 10px 0;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 8px;
+      }
+
+      .pill {
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      a { color: var(--accent); }
+    </style>
   </head>
+
   <body>
-    <!-- 1️⃣ 방 번호 / 닉네임 입력 화면 -->
-    <div id="join-view">
-      <h3>방 입장</h3>
-      <div>
-        <label>방 번호: <input id="room" /></label>
+    <div class="wrap">
+
+      <!-- JOIN VIEW -->
+      <div id="join-view" class="panel">
+        <div class="row">
+          <h3 style="margin:0;">WebMessenger</h3>
+          <span class="spacer"></span>
+          <button id="theme-btn" title="다크모드 토글">🌙/☀️</button>
+        </div>
+
+        <div class="row" style="margin-top:12px;">
+          <label class="pill">방 번호</label>
+          <input id="room" placeholder="예: 1234" />
+          <button id="new-room">새 방</button>
+        </div>
+
+        <div class="row" style="margin-top:8px;">
+          <label class="pill">닉네임</label>
+          <input id="name" placeholder="예: csskim" />
+          <span class="spacer"></span>
+          <label class="pill" style="display:flex; gap:6px; align-items:center;">
+            <input id="sound-toggle" type="checkbox" style="margin:0;" />
+            알림음
+          </label>
+        </div>
+
+        <div class="row" style="margin-top:12px;">
+          <button id="join-btn">입장하기</button>
+          <span class="hint">팁: 같은 방 번호를 입력한 사람끼리 채팅합니다.</span>
+        </div>
+
+        <div class="hint">
+          링크로 바로 입장도 됩니다: <span class="pill">?room=1234&name=닉</span>
+        </div>
       </div>
-      <div>
-        <label>닉네임: <input id="name" /></label>
+
+      <!-- CHAT VIEW -->
+      <div id="chat-view" class="panel" style="display:none;">
+        <div class="row">
+          <div class="pill">
+            <span id="room-label"></span> 방
+          </div>
+          <span class="pill" id="name-label"></span>
+
+          <span class="spacer"></span>
+
+          <!-- (1) 링크 공유 -->
+          <button id="share-btn" title="현재 방 링크 복사">링크 복사</button>
+
+          <!-- (5) 로그 복사 -->
+          <button id="copy-btn" title="채팅 로그 전체 복사">로그 복사</button>
+
+          <!-- 다크모드 토글 -->
+          <button id="theme-btn2" title="다크모드 토글">🌙/☀️</button>
+        </div>
+
+        <!-- (다크모드 포함) IRC 스타일 로그 -->
+        <pre id="log"></pre>
+
+        <div class="row">
+          <input id="msg" style="flex: 1 1 auto; min-width: 220px;" autocomplete="off" placeholder="메시지 입력 (Enter 전송)" />
+          <button id="send-btn">전송</button>
+        </div>
+
+        <div class="hint">
+          (4) 명령어: <span class="pill">/help</span> <span class="pill">/clear</span> <span class="pill">/nick 새닉</span> <span class="pill">/me 행동</span>
+        </div>
       </div>
-      <button id="join-btn">입장하기</button>
+
     </div>
 
-    <!-- 2️⃣ 채팅 화면 (처음엔 숨김) -->
-    <div id="chat-view" style="display:none;">
-      <div>
-        <span id="room-label"></span> 방 입장됨
-      </div>
-      <pre id="log" style="width:100%;height:300px;border:1px solid #ccc;overflow-y:auto;"></pre>
-      <input id="msg" style="width:80%;" autocomplete="off" />
-      <button id="send-btn">전송</button>
-    </div>
-
-    <!-- socket.io 클라이언트 (서버에서 제공) -->
+    <!-- socket.io client -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
+      // -----------------------------
+      // 기본 요소
+      // -----------------------------
       const socket = io();
 
       const joinView = document.getElementById("join-view");
       const chatView = document.getElementById("chat-view");
+
       const roomInput = document.getElementById("room");
       const nameInput = document.getElementById("name");
       const joinBtn = document.getElementById("join-btn");
+      const newRoomBtn = document.getElementById("new-room");
 
       const roomLabel = document.getElementById("room-label");
+      const nameLabel = document.getElementById("name-label");
+
       const log = document.getElementById("log");
       const msgInput = document.getElementById("msg");
       const sendBtn = document.getElementById("send-btn");
+
+      const shareBtn = document.getElementById("share-btn"); // (1)
+      const copyBtn = document.getElementById("copy-btn");   // (5)
+
+      const themeBtn1 = document.getElementById("theme-btn");
+      const themeBtn2 = document.getElementById("theme-btn2");
+
+      const soundToggle = document.getElementById("sound-toggle"); // (3)
+
+      // -----------------------------
+      // (2) 닉네임 기억하기 + (3) 알림 토글 기억
+      // -----------------------------
+      const savedName = localStorage.getItem("wm_name");
+      if (savedName) nameInput.value = savedName;
+
+      const savedSound = localStorage.getItem("wm_sound");
+      soundToggle.checked = savedSound === "1";
+
+      soundToggle.addEventListener("change", () => {
+        localStorage.setItem("wm_sound", soundToggle.checked ? "1" : "0");
+      });
+
+      // -----------------------------
+      // 다크모드 (localStorage 기억)
+      // -----------------------------
+      function applyTheme(theme) {
+        document.body.classList.toggle("dark", theme === "dark");
+        localStorage.setItem("wm_theme", theme);
+      }
+      const savedTheme = localStorage.getItem("wm_theme") || "dark";
+      applyTheme(savedTheme);
+
+      function toggleTheme() {
+        const nowDark = document.body.classList.contains("dark");
+        applyTheme(nowDark ? "light" : "dark");
+      }
+      themeBtn1.onclick = toggleTheme;
+      themeBtn2.onclick = toggleTheme;
+
+      // -----------------------------
+      // 로그 출력
+      // -----------------------------
+      function appendLine(text) {
+        log.textContent += text + "\n";
+        log.scrollTop = log.scrollHeight;
+      }
+
+      // -----------------------------
+      // (3) 새 메시지 알림: 제목 뱃지 + (선택) 삐 소리
+      // -----------------------------
+      let unread = 0;
+      let hasFocus = true;
+
+      window.addEventListener("focus", () => {
+        hasFocus = true;
+        unread = 0;
+        document.title = "WebMessenger";
+      });
+      window.addEventListener("blur", () => {
+        hasFocus = false;
+      });
+
+      function beep() {
+        // 브라우저 정책상 사용자 액션 이후에만 안정적으로 울림
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = "sine";
+          o.frequency.value = 880;
+          g.gain.value = 0.03;
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start();
+          setTimeout(() => { o.stop(); ctx.close(); }, 80);
+        } catch {}
+      }
+
+      function notifyIncoming() {
+        if (!hasFocus) {
+          unread++;
+          document.title = `(${unread}) WebMessenger`;
+        }
+        if (soundToggle.checked) beep();
+      }
+
+      // -----------------------------
+      // (1) URL로 방번호/닉네임 자동 입장 (?room=1234&name=닉)
+      // -----------------------------
+      function getQuery() {
+        const p = new URLSearchParams(location.search);
+        return {
+          room: (p.get("room") || "").trim(),
+          name: (p.get("name") || "").trim(),
+        };
+      }
+
+      function setQuery(roomId, name) {
+        const p = new URLSearchParams();
+        p.set("room", roomId);
+        if (name) p.set("name", name);
+        history.replaceState(null, "", `${location.pathname}?${p.toString()}`);
+      }
+
+      const q = getQuery();
+      if (q.room) roomInput.value = q.room;
+      if (q.name) nameInput.value = q.name;
+
+      // 새 방 만들기(랜덤 방번호)
+      function randomRoom() {
+        return String(Math.floor(1000 + Math.random() * 9000));
+      }
+      newRoomBtn.onclick = () => {
+        roomInput.value = randomRoom();
+        roomInput.focus();
+      };
+
+      // -----------------------------
+      // 입장
+      // -----------------------------
+      function joinRoom(roomId, name) {
+        socket.emit("join", { roomId, name });
+
+        roomLabel.textContent = roomId;
+        nameLabel.textContent = name;
+
+        joinView.style.display = "none";
+        chatView.style.display = "block";
+        msgInput.focus();
+
+        // 기억/URL 반영
+        localStorage.setItem("wm_name", name);
+        setQuery(roomId, name);
+      }
 
       joinBtn.onclick = () => {
         const roomId = roomInput.value.trim();
@@ -51,41 +342,152 @@
           alert("방 번호를 입력하세요.");
           return;
         }
-
-        socket.emit("join", { roomId, name });
-
-        roomLabel.textContent = roomId;
-        joinView.style.display = "none";
-        chatView.style.display = "block";
-        msgInput.focus();
+        joinRoom(roomId, name);
       };
 
-      function appendLine(text) {
-        log.textContent += text + "\n";
-        log.scrollTop = log.scrollHeight;
+      // Enter로 입장(편의)
+      roomInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") joinBtn.click();
+      });
+      nameInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") joinBtn.click();
+      });
+
+      // -----------------------------
+      // (4) IRC 명령어 처리
+      // -----------------------------
+      function handleCommand(text) {
+        if (!text.startsWith("/")) return false;
+
+        const [cmd, ...rest] = text.slice(1).trim().split(/\s+/);
+        const arg = rest.join(" ");
+
+        switch ((cmd || "").toLowerCase()) {
+          case "help":
+            appendLine("[SYSTEM] 명령어: /help /clear /nick 새닉 /me 행동");
+            return true;
+
+          case "clear":
+            log.textContent = "";
+            appendLine("[SYSTEM] (로그를 비웠습니다)");
+            return true;
+
+          case "nick": {
+            const newName = arg.trim();
+            if (!newName) {
+              appendLine("[SYSTEM] 사용법: /nick 새닉네임");
+              return true;
+            }
+            // 서버에 알리진 않고(간단 버전), 클라이언트 닉만 바꿈
+            nameLabel.textContent = newName;
+            localStorage.setItem("wm_name", newName);
+            appendLine(`[SYSTEM] 닉네임 변경: ${newName}`);
+            // URL도 업데이트
+            setQuery(roomLabel.textContent, newName);
+
+            return true;
+          }
+
+          case "me": {
+            if (!arg.trim()) {
+              appendLine("[SYSTEM] 사용법: /me 행동");
+              return true;
+            }
+            // /me는 그냥 메시지로 보내되, 표시만 다르게
+            socket.emit("msg", `* ${nameLabel.textContent} ${arg}`);
+            return true;
+          }
+
+          default:
+            appendLine(`[SYSTEM] 알 수 없는 명령어: /${cmd} (도움말: /help)`);
+            return true;
+        }
       }
 
-      sendBtn.onclick = () => {
+      // -----------------------------
+      // 메시지 전송
+      // -----------------------------
+      function sendMessage() {
         const text = msgInput.value.trim();
         if (!text) return;
+
+        if (handleCommand(text)) {
+          msgInput.value = "";
+          msgInput.focus();
+          return;
+        }
+
         socket.emit("msg", text);
         msgInput.value = "";
         msgInput.focus();
-      };
+      }
 
+      sendBtn.onclick = sendMessage;
       msgInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          sendBtn.click();
-        }
+        if (e.key === "Enter") sendMessage();
       });
 
+      // -----------------------------
+      // (1) 링크 복사: 현재 방 URL을 클립보드로
+      // -----------------------------
+      shareBtn.onclick = async () => {
+        const url = location.href;
+        try {
+          await navigator.clipboard.writeText(url);
+          appendLine(`[SYSTEM] 링크 복사됨: ${url}`);
+        } catch {
+          // fallback
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          appendLine("[SYSTEM] 링크 복사됨 (fallback)");
+        }
+      };
+
+      // -----------------------------
+      // (5) 로그 복사
+      // -----------------------------
+      copyBtn.onclick = async () => {
+        const text = log.textContent || "";
+        if (!text.trim()) {
+          appendLine("[SYSTEM] 복사할 로그가 없습니다.");
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(text);
+          appendLine("[SYSTEM] 로그 복사 완료");
+        } catch {
+          appendLine("[SYSTEM] 로그 복사 실패 (브라우저 권한 확인)");
+        }
+      };
+
+      // -----------------------------
+      // 수신 이벤트
+      // -----------------------------
       socket.on("system", (text) => {
         appendLine("[SYSTEM] " + text);
+        notifyIncoming();
       });
 
       socket.on("msg", (payload) => {
+        // IRC 스타일 출력
         appendLine(`[${payload.time}] ${payload.name}: ${payload.text}`);
+        notifyIncoming();
       });
+
+      // -----------------------------
+      // 쿼리에 room이 있으면 자동 입장(처음 접속 편의)
+      // -----------------------------
+      // 사용자가 버튼 클릭 없이 바로 들어오게 하고 싶으면:
+      // 아래 주석 해제하면 됨 (단, 닉네임 없으면 익명으로 들어감)
+      //
+      // if (q.room) {
+      //   const name = (nameInput.value.trim() || "익명");
+      //   joinRoom(q.room, name);
+      // }
     </script>
   </body>
 </html>

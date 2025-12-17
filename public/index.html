@@ -354,7 +354,7 @@
       });
 
       // -----------------------------
-      // (4) IRC 명령어 처리
+      // (4) IRC 명령어 처리 (수정된 부분)
       // -----------------------------
       function handleCommand(text) {
         if (!text.startsWith("/")) return false;
@@ -378,6 +378,135 @@
               appendLine("[SYSTEM] 사용법: /nick 새닉네임");
               return true;
             }
+
+            // ✅ 서버에도 닉 변경 알려서, 이후 채팅 name이 바뀌게 함
+            socket.emit("nick", newName);
+
+            // 화면/저장/URL 반영
+            nameLabel.textContent = newName;
+            localStorage.setItem("wm_name", newName);
+            appendLine(`[SYSTEM] 닉네임 변경: ${newName}`);
+            setQuery(roomLabel.textContent, newName);
+
+            return true;
+          }
+
+          case "me": {
+            if (!arg.trim()) {
+              appendLine("[SYSTEM] 사용법: /me 행동");
+              return true;
+            }
+            // /me는 그냥 메시지로 보내되, 표시만 다르게
+            socket.emit("msg", `* ${nameLabel.textContent} ${arg}`);
+            return true;
+          }
+
+          default:
+            appendLine(`[SYSTEM] 알 수 없는 명령어: /${cmd} (도움말: /help)`);
+            return true;
+        }
+      }
+
+      // -----------------------------
+      // 메시지 전송
+      // -----------------------------
+      function sendMessage() {
+        const text = msgInput.value.trim();
+        if (!text) return;
+
+        if (handleCommand(text)) {
+          msgInput.value = "";
+          msgInput.focus();
+          return;
+        }
+
+        socket.emit("msg", text);
+        msgInput.value = "";
+        msgInput.focus();
+      }
+
+      sendBtn.onclick = sendMessage;
+      msgInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+
+      // -----------------------------
+      // (1) 링크 복사: 현재 방 URL을 클립보드로
+      // -----------------------------
+      shareBtn.onclick = async () => {
+        const url = location.href;
+        try {
+          await navigator.clipboard.writeText(url);
+          appendLine(`[SYSTEM] 링크 복사됨: ${url}`);
+        } catch {
+          // fallback
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          appendLine("[SYSTEM] 링크 복사됨 (fallback)");
+        }
+      };
+
+      // -----------------------------
+      // (5) 로그 복사
+      // -----------------------------
+      copyBtn.onclick = async () => {
+        const text = log.textContent || "";
+        if (!text.trim()) {
+          appendLine("[SYSTEM] 복사할 로그가 없습니다.");
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(text);
+          appendLine("[SYSTEM] 로그 복사 완료");
+        } catch {
+          appendLine("[SYSTEM] 로그 복사 실패 (브라우저 권한 확인)");
+        }
+      };
+
+      // -----------------------------
+      // 수신 이벤트
+      // -----------------------------
+      socket.on("system", (text) => {
+        appendLine("[SYSTEM] " + text);
+        notifyIncoming();
+      });
+
+      socket.on("msg", (payload) => {
+        // IRC 스타일 출력
+        appendLine(`[${payload.time}] ${payload.name}: ${payload.text}`);
+        notifyIncoming();
+      });
+    </script>
+
+  // ✅ 서버에도 닉 변경 알려서, 이후 채팅 name이 바뀌게 함
+  socket.emit("nick", newName);
+
+  // 화면/저장/URL 반영
+  nameLabel.textContent = newName;
+  localStorage.setItem("wm_name", newName);
+  appendLine(`[SYSTEM] 닉네임 변경: ${newName}`);
+  setQuery(roomLabel.textContent, newName);
+
+  return true;
+}
+
+
+  // ✅ 서버에도 닉 변경 알림 (이게 핵심)
+  socket.emit("nick", newName);
+
+  // 화면/저장/URL 반영
+  nameLabel.textContent = newName;
+  localStorage.setItem("wm_name", newName);
+  appendLine(`[SYSTEM] 닉네임 변경: ${newName}`);
+  setQuery(roomLabel.textContent, newName);
+
+  return true;
+}
+
             // 서버에 알리진 않고(간단 버전), 클라이언트 닉만 바꿈
             nameLabel.textContent = newName;
             localStorage.setItem("wm_name", newName);

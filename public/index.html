@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>초간단 방번호 채팅</title>
+  </head>
+  <body>
+    <!-- 1️⃣ 방 번호 / 닉네임 입력 화면 -->
+    <div id="join-view">
+      <h3>방 입장</h3>
+      <div>
+        <label>방 번호: <input id="room" /></label>
+      </div>
+      <div>
+        <label>닉네임: <input id="name" /></label>
+      </div>
+      <button id="join-btn">입장하기</button>
+    </div>
+
+    <!-- 2️⃣ 채팅 화면 (처음엔 숨김) -->
+    <div id="chat-view" style="display:none;">
+      <div>
+        <span id="room-label"></span> 방 입장됨
+      </div>
+      <pre id="log" style="width:100%;height:300px;border:1px solid #ccc;overflow-y:auto;"></pre>
+      <input id="msg" style="width:80%;" autocomplete="off" />
+      <button id="send-btn">전송</button>
+    </div>
+
+    <!-- socket.io 클라이언트 (서버에서 제공) -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      const joinView = document.getElementById("join-view");
+      const chatView = document.getElementById("chat-view");
+      const roomInput = document.getElementById("room");
+      const nameInput = document.getElementById("name");
+      const joinBtn = document.getElementById("join-btn");
+
+      const roomLabel = document.getElementById("room-label");
+      const log = document.getElementById("log");
+      const msgInput = document.getElementById("msg");
+      const sendBtn = document.getElementById("send-btn");
+
+      joinBtn.onclick = () => {
+        const roomId = roomInput.value.trim();
+        const name = nameInput.value.trim() || "익명";
+
+        if (!roomId) {
+          alert("방 번호를 입력하세요.");
+          return;
+        }
+
+        socket.emit("join", { roomId, name });
+
+        roomLabel.textContent = roomId;
+        joinView.style.display = "none";
+        chatView.style.display = "block";
+        msgInput.focus();
+      };
+
+      function appendLine(text) {
+        log.textContent += text + "\n";
+        log.scrollTop = log.scrollHeight;
+      }
+
+      sendBtn.onclick = () => {
+        const text = msgInput.value.trim();
+        if (!text) return;
+        socket.emit("msg", text);
+        msgInput.value = "";
+        msgInput.focus();
+      };
+
+      msgInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          sendBtn.click();
+        }
+      });
+
+      socket.on("system", (text) => {
+        appendLine("[SYSTEM] " + text);
+      });
+
+      socket.on("msg", (payload) => {
+        appendLine(`[${payload.time}] ${payload.name}: ${payload.text}`);
+      });
+    </script>
+  </body>
+</html>

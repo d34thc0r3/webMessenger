@@ -107,7 +107,6 @@
 
   <body>
     <div class="wrap">
-
       <!-- JOIN VIEW -->
       <div id="join-view" class="panel">
         <div class="row">
@@ -124,7 +123,7 @@
 
         <div class="row" style="margin-top:8px;">
           <label class="pill">닉네임</label>
-          <input id="name" placeholder="예: csskim" />
+          <input id="name" placeholder="예: d34thc0r3" />
           <span class="spacer"></span>
           <label class="pill" style="display:flex; gap:6px; align-items:center;">
             <input id="sound-toggle" type="checkbox" style="margin:0;" />
@@ -152,33 +151,37 @@
 
           <span class="spacer"></span>
 
-          <!-- (1) 링크 공유 -->
           <button id="share-btn" title="현재 방 링크 복사">링크 복사</button>
-
-          <!-- (5) 로그 복사 -->
           <button id="copy-btn" title="채팅 로그 전체 복사">로그 복사</button>
-
-          <!-- 다크모드 토글 -->
           <button id="theme-btn2" title="다크모드 토글">🌙/☀️</button>
         </div>
 
-        <!-- (다크모드 포함) IRC 스타일 로그 -->
         <pre id="log"></pre>
 
         <div class="row">
-          <input id="msg" style="flex: 1 1 auto; min-width: 220px;" autocomplete="off" placeholder="메시지 입력 (Enter 전송)" />
+          <input
+            id="msg"
+            style="flex: 1 1 auto; min-width: 220px;"
+            autocomplete="off"
+            placeholder="메시지 입력 (Enter 전송)"
+          />
           <button id="send-btn">전송</button>
         </div>
 
         <div class="hint">
-          (4) 명령어: <span class="pill">/help</span> <span class="pill">/clear</span> <span class="pill">/nick 새닉</span> <span class="pill">/me 행동</span>
+          명령어:
+          <span class="pill">/help</span>
+          <span class="pill">/clear</span>
+          <span class="pill">/nick 새닉</span>
+          <span class="pill">/me 행동</span>
         </div>
       </div>
-
     </div>
 
-    <!-- socket.io client -->
+    <!-- ✅ 1) socket.io 라이브러리는 "로드만" -->
     <script src="/socket.io/socket.io.js"></script>
+
+    <!-- ✅ 2) 내 코드는 별도 script 태그 -->
     <script>
       // -----------------------------
       // 기본 요소
@@ -200,16 +203,16 @@
       const msgInput = document.getElementById("msg");
       const sendBtn = document.getElementById("send-btn");
 
-      const shareBtn = document.getElementById("share-btn"); // (1)
-      const copyBtn = document.getElementById("copy-btn");   // (5)
+      const shareBtn = document.getElementById("share-btn");
+      const copyBtn = document.getElementById("copy-btn");
 
       const themeBtn1 = document.getElementById("theme-btn");
       const themeBtn2 = document.getElementById("theme-btn2");
 
-      const soundToggle = document.getElementById("sound-toggle"); // (3)
+      const soundToggle = document.getElementById("sound-toggle");
 
       // -----------------------------
-      // (2) 닉네임 기억하기 + (3) 알림 토글 기억
+      // 닉네임/알림 토글 기억
       // -----------------------------
       const savedName = localStorage.getItem("wm_name");
       if (savedName) nameInput.value = savedName;
@@ -247,7 +250,7 @@
       }
 
       // -----------------------------
-      // (3) 새 메시지 알림: 제목 뱃지 + (선택) 삐 소리
+      // 새 메시지 알림: 제목 뱃지 + (선택) 삐 소리
       // -----------------------------
       let unread = 0;
       let hasFocus = true;
@@ -262,7 +265,6 @@
       });
 
       function beep() {
-        // 브라우저 정책상 사용자 액션 이후에만 안정적으로 울림
         try {
           const ctx = new (window.AudioContext || window.webkitAudioContext)();
           const o = ctx.createOscillator();
@@ -286,7 +288,7 @@
       }
 
       // -----------------------------
-      // (1) URL로 방번호/닉네임 자동 입장 (?room=1234&name=닉)
+      // URL로 방번호/닉네임 반영 (?room=1234&name=닉)
       // -----------------------------
       function getQuery() {
         const p = new URLSearchParams(location.search);
@@ -329,7 +331,6 @@
         chatView.style.display = "block";
         msgInput.focus();
 
-        // 기억/URL 반영
         localStorage.setItem("wm_name", name);
         setQuery(roomId, name);
       }
@@ -345,7 +346,6 @@
         joinRoom(roomId, name);
       };
 
-      // Enter로 입장(편의)
       roomInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") joinBtn.click();
       });
@@ -354,7 +354,7 @@
       });
 
       // -----------------------------
-      // (4) IRC 명령어 처리 (수정된 부분)
+      // IRC 명령어 처리
       // -----------------------------
       function handleCommand(text) {
         if (!text.startsWith("/")) return false;
@@ -396,7 +396,6 @@
               appendLine("[SYSTEM] 사용법: /me 행동");
               return true;
             }
-            // /me는 그냥 메시지로 보내되, 표시만 다르게
             socket.emit("msg", `* ${nameLabel.textContent} ${arg}`);
             return true;
           }
@@ -431,7 +430,7 @@
       });
 
       // -----------------------------
-      // (1) 링크 복사: 현재 방 URL을 클립보드로
+      // 링크 복사
       // -----------------------------
       shareBtn.onclick = async () => {
         const url = location.href;
@@ -439,7 +438,6 @@
           await navigator.clipboard.writeText(url);
           appendLine(`[SYSTEM] 링크 복사됨: ${url}`);
         } catch {
-          // fallback
           const ta = document.createElement("textarea");
           ta.value = url;
           document.body.appendChild(ta);
@@ -451,7 +449,7 @@
       };
 
       // -----------------------------
-      // (5) 로그 복사
+      // 로그 복사
       // -----------------------------
       copyBtn.onclick = async () => {
         const text = log.textContent || "";
@@ -476,147 +474,9 @@
       });
 
       socket.on("msg", (payload) => {
-        // IRC 스타일 출력
         appendLine(`[${payload.time}] ${payload.name}: ${payload.text}`);
         notifyIncoming();
       });
-    </script>
-
-  // ✅ 서버에도 닉 변경 알려서, 이후 채팅 name이 바뀌게 함
-  socket.emit("nick", newName);
-
-  // 화면/저장/URL 반영
-  nameLabel.textContent = newName;
-  localStorage.setItem("wm_name", newName);
-  appendLine(`[SYSTEM] 닉네임 변경: ${newName}`);
-  setQuery(roomLabel.textContent, newName);
-
-  return true;
-}
-
-
-  // ✅ 서버에도 닉 변경 알림 (이게 핵심)
-  socket.emit("nick", newName);
-
-  // 화면/저장/URL 반영
-  nameLabel.textContent = newName;
-  localStorage.setItem("wm_name", newName);
-  appendLine(`[SYSTEM] 닉네임 변경: ${newName}`);
-  setQuery(roomLabel.textContent, newName);
-
-  return true;
-}
-
-            // 서버에 알리진 않고(간단 버전), 클라이언트 닉만 바꿈
-            nameLabel.textContent = newName;
-            localStorage.setItem("wm_name", newName);
-            appendLine(`[SYSTEM] 닉네임 변경: ${newName}`);
-            // URL도 업데이트
-            setQuery(roomLabel.textContent, newName);
-
-            return true;
-          }
-
-          case "me": {
-            if (!arg.trim()) {
-              appendLine("[SYSTEM] 사용법: /me 행동");
-              return true;
-            }
-            // /me는 그냥 메시지로 보내되, 표시만 다르게
-            socket.emit("msg", `* ${nameLabel.textContent} ${arg}`);
-            return true;
-          }
-
-          default:
-            appendLine(`[SYSTEM] 알 수 없는 명령어: /${cmd} (도움말: /help)`);
-            return true;
-        }
-      }
-
-      // -----------------------------
-      // 메시지 전송
-      // -----------------------------
-      function sendMessage() {
-        const text = msgInput.value.trim();
-        if (!text) return;
-
-        if (handleCommand(text)) {
-          msgInput.value = "";
-          msgInput.focus();
-          return;
-        }
-
-        socket.emit("msg", text);
-        msgInput.value = "";
-        msgInput.focus();
-      }
-
-      sendBtn.onclick = sendMessage;
-      msgInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendMessage();
-      });
-
-      // -----------------------------
-      // (1) 링크 복사: 현재 방 URL을 클립보드로
-      // -----------------------------
-      shareBtn.onclick = async () => {
-        const url = location.href;
-        try {
-          await navigator.clipboard.writeText(url);
-          appendLine(`[SYSTEM] 링크 복사됨: ${url}`);
-        } catch {
-          // fallback
-          const ta = document.createElement("textarea");
-          ta.value = url;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          document.body.removeChild(ta);
-          appendLine("[SYSTEM] 링크 복사됨 (fallback)");
-        }
-      };
-
-      // -----------------------------
-      // (5) 로그 복사
-      // -----------------------------
-      copyBtn.onclick = async () => {
-        const text = log.textContent || "";
-        if (!text.trim()) {
-          appendLine("[SYSTEM] 복사할 로그가 없습니다.");
-          return;
-        }
-        try {
-          await navigator.clipboard.writeText(text);
-          appendLine("[SYSTEM] 로그 복사 완료");
-        } catch {
-          appendLine("[SYSTEM] 로그 복사 실패 (브라우저 권한 확인)");
-        }
-      };
-
-      // -----------------------------
-      // 수신 이벤트
-      // -----------------------------
-      socket.on("system", (text) => {
-        appendLine("[SYSTEM] " + text);
-        notifyIncoming();
-      });
-
-      socket.on("msg", (payload) => {
-        // IRC 스타일 출력
-        appendLine(`[${payload.time}] ${payload.name}: ${payload.text}`);
-        notifyIncoming();
-      });
-
-      // -----------------------------
-      // 쿼리에 room이 있으면 자동 입장(처음 접속 편의)
-      // -----------------------------
-      // 사용자가 버튼 클릭 없이 바로 들어오게 하고 싶으면:
-      // 아래 주석 해제하면 됨 (단, 닉네임 없으면 익명으로 들어감)
-      //
-      // if (q.room) {
-      //   const name = (nameInput.value.trim() || "익명");
-      //   joinRoom(q.room, name);
-      // }
     </script>
   </body>
 </html>

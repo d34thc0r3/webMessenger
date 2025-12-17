@@ -5,7 +5,10 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] }
+});
+
 
 app.use(express.static("public")); // public 폴더를 정적 파일로 제공
 
@@ -37,6 +40,5 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(3000, () => {
-  console.log("http://localhost:3000 에서 대기 중");
-});
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log("server running on", PORT));
